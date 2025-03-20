@@ -1,20 +1,18 @@
-import typescript from "@rollup/plugin-typescript";
-import commonjs from "@rollup/plugin-commonjs";
-import resolve from "@rollup/plugin-node-resolve";
-import json from "@rollup/plugin-json";
+// See: https://rollupjs.org/introduction/
 
-export default {
-  input: "src/main.ts",
-  output: {
-    file: "dist/index.js",
-    format: "cjs",
-    banner: "#!/usr/bin/env node",
-  },
-  plugins: [
-    typescript(),
-    commonjs(),
-    resolve({ preferBuiltins: true }),
-    json(),
-  ],
-  external: ["@actions/core", "@actions/github", "fs/promises"],
-};
+import commonjs from '@rollup/plugin-commonjs'
+import nodeResolve from '@rollup/plugin-node-resolve'
+import typescript from '@rollup/plugin-typescript'
+
+const config = {
+    input: 'src/main.ts',
+    output: {
+        esModule: true,
+        file: 'dist/index.js',
+        format: 'es',
+        sourcemap: true
+    },
+    plugins: [typescript(), nodeResolve({ preferBuiltins: true }), commonjs()]
+}
+
+export default config

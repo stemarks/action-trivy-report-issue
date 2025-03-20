@@ -13,7 +13,7 @@ inputs:
     description: "Issue label, separated by comma"
     required: false
     default: "vulnerability"
-  create_label:
+  create-label:
     description: "Create the label if it doesn't already exist"
     required: false
     default: "false"

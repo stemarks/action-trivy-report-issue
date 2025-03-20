@@ -1,32 +1,9 @@
-#!/usr/bin/env node
-'use strict';
-
-var process$1 = require('process');
-var fs = require('fs/promises');
-var require$$0$1 = require('assert');
-var require$$0 = require('util');
-var require$$2 = require('fs');
-var require$$4 = require('path');
-
-function _interopNamespaceDefault(e) {
-	var n = Object.create(null);
-	if (e) {
-		Object.keys(e).forEach(function (k) {
-			if (k !== 'default') {
-				var d = Object.getOwnPropertyDescriptor(e, k);
-				Object.defineProperty(n, k, d.get ? d : {
-					enumerable: true,
-					get: function () { return e[k]; }
-				});
-			}
-		});
-	}
-	n.default = e;
-	return Object.freeze(n);
-}
-
-var process__namespace = /*#__PURE__*/_interopNamespaceDefault(process$1);
-var fs__namespace = /*#__PURE__*/_interopNamespaceDefault(fs);
+import * as process$1 from 'process';
+import * as fs from 'fs/promises';
+import require$$0$1 from 'assert';
+import require$$0 from 'util';
+import require$$2 from 'fs';
+import require$$4 from 'path';
 
 function getDefaultExportFromCjs (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
@@ -8408,7 +8385,7 @@ function abort(message, error) {
     if (error) {
         console.error(error); // Optionally log the error object itself
     }
-    process__namespace.exit(1);
+    process$1.exit(1);
 }
 async function main() {
     const parser = new argparseExports.ArgumentParser({
@@ -8418,11 +8395,11 @@ async function main() {
     const args = parser.parse_args();
     const filename = args.file;
     // GitHub Action inputs are accessed via process.env
-    const githubRepo = process__namespace.env.GITHUB_REPOSITORY;
-    const githubToken = process__namespace.env.INPUT_TOKEN; // Corrected: INPUT_token
-    const inputLabel = process__namespace.env.INPUT_LABEL;
-    const assignee = process__namespace.env.INPUT_ASSIGNEE;
-    const createLabel = process__namespace.env.INPUT_CREATE_LABEL === "true"; // Convert to boolean
+    const githubRepo = process$1.env.GITHUB_REPOSITORY;
+    const githubToken = process$1.env.INPUT_TOKEN; // Corrected: INPUT_token
+    const inputLabel = process$1.env.INPUT_LABEL;
+    const assignee = process$1.env.INPUT_ASSIGNEE;
+    const createLabel = process$1.env.INPUT_CREATE_LABEL === "true"; // Convert to boolean
     if (!githubRepo || !githubToken || !inputLabel) {
         abort("Environment variables GITHUB_REPOSITORY, GITHUB_TOKEN, and INPUT_LABEL must be set.");
         return;
@@ -8438,8 +8415,8 @@ async function main() {
         return;
     }
     // Example: Check if INPUT_CREATE_LABEL is a valid boolean string
-    if (process__namespace.env.INPUT_CREATE_LABEL &&
-        !["true", "false"].includes(process__namespace.env.INPUT_CREATE_LABEL.toLowerCase())) {
+    if (process$1.env.INPUT_CREATE_LABEL &&
+        !["true", "false"].includes(process$1.env.INPUT_CREATE_LABEL.toLowerCase())) {
         abort("Invalid INPUT_CREATE_LABEL value.  Must be 'true' or 'false'.");
         return;
     }
@@ -8449,7 +8426,7 @@ async function main() {
         if (createLabel) {
             await createLabelIfMissing(octokit, owner, repo, inputLabel);
         }
-        const fileContent = await fs__namespace.readFile(filename, "utf-8");
+        const fileContent = await fs.readFile(filename, "utf-8");
         const data = JSON.parse(fileContent); // Data is now defined here.
         const existingIssues = await fetchExistingIssues(octokit, owner, repo, inputLabel);
         const reports = parseResults(data, existingIssues);
@@ -8472,3 +8449,4 @@ async function main() {
     }
 }
 main();
+//# sourceMappingURL=index.js.map
