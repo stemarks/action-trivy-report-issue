@@ -1,0 +1,29 @@
+name: "Trivy Issue Reporter"
+description: "Creates GitHub Issues from Trivy scan results"
+author: "Periphery Security"
+
+inputs:
+  token:
+    description: "GitHub token"
+    required: true
+  input-filename:
+    description: "Filename containing Trivy scan results, in JSON format"
+    required: true
+  label:
+    description: "Issue label, separated by comma"
+    required: false
+    default: "vulnerability"
+  create_label:
+    description: "Create the label if it doesn't already exist"
+    required: false
+    default: "false"
+  assignee:
+    description: "Issue assignees, separated by comma"
+    required: false
+  project-id:
+    description: "Project ID to associate the issue with"
+    required: false
+
+runs:
+  using: "node20" # Or the node version you are using
+  main: "dist/index.js"

@@ -1,0 +1,97 @@
+# .github/workflows/integration-test.yml
+name: Integration Test
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  push:
+    branches:
+      - main # Or a development branch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20 # Or your required Node.js version
+
+      - name: Install dependencies
+        run: npm install # Or yarn install
+
+      - name: Build Action
+        run: npm run build # Or your build command
+
+      - name: Create Sample Trivy Report
+        run: |
+          mkdir -p test-data
+          cat <<EOF > test-data/trivy-report.json
+          {
+            "Results": [
+              {
+                "Type": "os",
+                "Target": "ubuntu:latest",
+                "Vulnerabilities": [
+                  {
+                    "VulnerabilityID": "CVE-2023-TEST-001",
+                    "PkgName": "test-package",
+                    "InstalledVersion": "1.0.0",
+                    "FixedVersion": "1.1.0",
+                    "Title": "Test Vulnerability",
+                    "Description": "A test vulnerability for integration testing.",
+                    "Severity": "HIGH",
+                    "PrimaryURL": "https://example.com/cve-2023-test-001",
+                    "References":
+                  },
+                  {
+                    "VulnerabilityID": "CVE-2023-TEST-002",
+                    "PkgName": "test-package",
+                    "InstalledVersion": "1.0.1",
+                    "Title": "Test Vulnerability",
+                    "Description": "A test vulnerability for integration testing 2.",
+                    "Severity": "HIGH",
+                    "PrimaryURL": "https://example.com/cve-2023-test-002",
+                    "References":
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+      - name: Run Action
+        uses: ./ # Or your action's repo/tag
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          input-filename: "test-data/trivy-report.json" # Use the sample report
+          label: "integration-test"
+          create-label: "true"
+
+      - name: Verify Issue Creation
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const core = require('@actions/core');
+            const github = require('@actions/github');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const label = core.getInput('label');
+
+            const issues = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              labels: label,
+            });
+
+            if (issues.data.length > 0) {
+              const issue = issues.data[0];
+              console.log('Issue found: ', issue.title);
+              // Add more detailed checks here if needed
+              expect(issue.title).toContain('Security Alert');
+            } else {
+              core.setFailed('No issues were created by the action.');
+            }
