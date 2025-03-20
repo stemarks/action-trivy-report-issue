@@ -67,7 +67,7 @@ jobs:
         uses: ./ # Or your action's repo/tag
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          input-filename: "test-data/trivy-report.json" # Use the sample report
+          filename: "test-data/trivy-report.json" # Use the sample report
           label: "integration-test"
           create-label: "true"
 

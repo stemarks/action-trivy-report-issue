@@ -6,7 +6,7 @@ inputs:
   token:
     description: "GitHub token"
     required: true
-  input-filename:
+  filename:
     description: "Filename containing Trivy scan results, in JSON format"
     required: true
   label:

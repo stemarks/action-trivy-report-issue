@@ -1,6 +1,5 @@
 import * as process from "process";
 import * as fs from "fs/promises";
-import * as argparse from "argparse";
 
 import { Octokit } from "@octokit/rest";
 import { Issue } from "./dataclass.js";
@@ -113,7 +112,7 @@ async function main() {
   const inputLabel = process.env.INPUT_LABEL;
   const assignee = process.env.INPUT_ASSIGNEE;
   const createLabel = process.env.INPUT_CREATE_LABEL === "true"; // Convert to boolean
-  
+
   if (!filename) {
     abort("Environment variable INPUT_FILENAME must be set.");
   }
