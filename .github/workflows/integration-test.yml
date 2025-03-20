@@ -24,7 +24,7 @@ jobs:
         run: npm install # Or yarn install
 
       - name: Build Action
-        run: npm run build # Or your build command
+        run: npm run package # Or your build command
 
       - name: Create Sample Trivy Report
         run: |
