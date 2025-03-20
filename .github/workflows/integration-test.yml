@@ -26,48 +26,11 @@ jobs:
       - name: Build Action
         run: npm run package # Or your build command
 
-      - name: Create Sample Trivy Report
-        run: |
-          mkdir -p test-data
-          cat <<EOF > test-data/trivy-report.json
-          {
-            "Results": [
-              {
-                "Type": "os",
-                "Target": "ubuntu:latest",
-                "Vulnerabilities": [
-                  {
-                    "VulnerabilityID": "CVE-2023-TEST-001",
-                    "PkgName": "test-package",
-                    "InstalledVersion": "1.0.0",
-                    "FixedVersion": "1.1.0",
-                    "Title": "Test Vulnerability",
-                    "Description": "A test vulnerability for integration testing.",
-                    "Severity": "HIGH",
-                    "PrimaryURL": "https://example.com/cve-2023-test-001",
-                    "References":
-                  },
-                  {
-                    "VulnerabilityID": "CVE-2023-TEST-002",
-                    "PkgName": "test-package",
-                    "InstalledVersion": "1.0.1",
-                    "Title": "Test Vulnerability",
-                    "Description": "A test vulnerability for integration testing 2.",
-                    "Severity": "HIGH",
-                    "PrimaryURL": "https://example.com/cve-2023-test-002",
-                    "References":
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-
       - name: Run Action
         uses: ./ # Or your action's repo/tag
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          filename: "test-data/trivy-report.json" # Use the sample report
+          filename: ".github/workflows/reports/report1.json" # Use the sample report
           label: "integration-test"
           create-label: "true"
 
