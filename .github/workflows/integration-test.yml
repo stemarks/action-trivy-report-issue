@@ -9,6 +9,8 @@ on:
 
 jobs:
   test:
+    permissions:
+      issues: write
     runs-on: ubuntu-latest
 
     steps:
