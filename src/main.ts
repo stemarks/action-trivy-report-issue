@@ -105,37 +105,32 @@ function abort(message: string, error?: Error): never {
 }
 
 async function main() {
-  const parser = new argparse.ArgumentParser({
-    description:
-      "Parses Trivy JSON report files and reports new vulnerabilities as GitHub issues. Existing issues are read from the repository $GITHUB_REPOSITORY and used to exclude reported issues.",
-  });
-  parser.add_argument("file");
-  const args = parser.parse_args();
-  const filename: string = args.file;
+
   // GitHub Action inputs are accessed via process.env
+  const filename: string = process.env.INPUT_FILENAME || ""; // Get filename from environment variable
   const githubRepo = process.env.GITHUB_REPOSITORY;
   const githubToken = process.env.INPUT_TOKEN; // Corrected: INPUT_token
   const inputLabel = process.env.INPUT_LABEL;
   const assignee = process.env.INPUT_ASSIGNEE;
   const createLabel = process.env.INPUT_CREATE_LABEL === "true"; // Convert to boolean
-
+  
+  if (!filename) {
+    abort("Environment variable INPUT_FILENAME must be set.");
+  }
   if (!githubRepo || !githubToken || !inputLabel) {
     abort(
       "Environment variables GITHUB_REPOSITORY, GITHUB_TOKEN, and INPUT_LABEL must be set.",
     );
-    return;
   }
 
   const [owner, repo] = githubRepo.split("/");
   if (!owner || !repo) {
     abort("Invalid GITHUB_REPOSITORY format. Expected 'owner/repo'.");
-    return;
   }
 
   // Add validation for TOKEN (example: check length or prefix)
   if (githubToken.length < 4) {
     abort("Invalid GITHUB_TOKEN format. Token is too short.");
-    return;
   }
 
   // Example: Check if INPUT_CREATE_LABEL is a valid boolean string
@@ -144,7 +139,6 @@ async function main() {
     !["true", "false"].includes(process.env.INPUT_CREATE_LABEL.toLowerCase())
   ) {
     abort("Invalid INPUT_CREATE_LABEL value.  Must be 'true' or 'false'.");
-    return;
   }
 
   const octokit = new Octokit({ auth: githubToken });
