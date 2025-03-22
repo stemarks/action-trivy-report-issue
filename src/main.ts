@@ -1,99 +1,10 @@
 import * as process from "process";
 import * as fs from "fs/promises";
 
-import { Octokit } from "@octokit/rest";
-import { Issue } from "./dataclass.js";
 import { generateIssues, parseResults } from "./report-generator.js";
-import { ReportDict } from "./interfaces.js";
-import { RequestError } from "@octokit/request-error"; // Import the specific error type
-
-// ... (interfaces and types)
-
-async function fetchExistingIssues(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  label: string,
-): Promise<string[]> {
-  try {
-    const response = await octokit.issues.listForRepo({
-      owner,
-      repo,
-      labels: label,
-      state: "all",
-    });
-
-    return response.data.map((issue) => issue.title);
-  } catch (error) {
-    throw new Error(`Failed to fetch issues: ${error}`);
-  }
-}
-
-async function createGitHubIssue(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  issue: Issue,
-  label: string,
-  assignees: string[],
-): Promise<void> {
-  try {
-    await octokit.issues.create({
-      owner,
-      repo,
-      title: issue.title,
-      body: issue.body,
-      labels: [label],
-      assignees: assignees,
-    });
-    console.log(`Created GitHub issue: ${issue.title}`);
-  } catch (error) {
-    throw new Error(`Failed to create issue: ${error}`);
-  }
-}
-
-async function createLabelIfMissing(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  label: string,
-): Promise<void> {
-  try {
-    await octokit.rest.issues.getLabel({
-      owner: owner,
-      repo: repo,
-      name: label,
-    });
-    console.log(`Label "${label}" already exists.`);
-  } catch (error: unknown) {
-    if (error instanceof RequestError) {
-      // Use RequestError (or the appropriate Octokit error type)
-      if (error.status === 404) {
-        console.log(`Label "${label}" does not exist. Creating it...`);
-        await octokit.rest.issues.createLabel({
-          owner: owner,
-          repo: repo,
-          name: label,
-        });
-        console.log(`Label "${label}" created successfully.`);
-      } else {
-        throw new Error(
-          `Error checking or creating label "${label}": ${error.message}`,
-        );
-      }
-    } else if (error instanceof Error) {
-      // Handle other standard JavaScript errors
-      throw new Error(
-        `Error checking or creating label "${label}": ${error.message}`,
-      );
-    } else {
-      // Handle cases where error is not an Error instance
-      throw new Error(
-        `Error checking or creating label "${label}": An unknown error occurred.`,
-      );
-    }
-  }
-}
+import { ReportDict } from "./interface.js";
+import { GitHub } from "./github.js";
+import { Inputs } from "./inputs.js";
 
 function abort(message: string, error?: Error): never {
   console.error(`Error: ${message}`);
@@ -105,57 +16,22 @@ function abort(message: string, error?: Error): never {
 
 async function main() {
 
-  // GitHub Action inputs are accessed via process.env
-  const filename: string = process.env.INPUT_FILENAME || ""; // Get filename from environment variable
-  const githubRepo = process.env.GITHUB_REPOSITORY;
-  const githubToken = process.env.INPUT_TOKEN; // Corrected: INPUT_token
-  const inputLabel = process.env.INPUT_LABEL;
-  const assignee = process.env.INPUT_ASSIGNEE;
-  const createLabel = process.env.INPUT_CREATE_LABEL === "true"; // Convert to boolean
+  const inputs = new Inputs();
 
-  if (!filename) {
-    abort("Environment variable INPUT_FILENAME must be set.");
-  }
-  if (!githubRepo || !githubToken || !inputLabel) {
-    abort(
-      "Environment variables GITHUB_REPOSITORY, GITHUB_TOKEN, and INPUT_LABEL must be set.",
-    );
-  }
-
-  const [owner, repo] = githubRepo.split("/");
-  if (!owner || !repo) {
-    abort("Invalid GITHUB_REPOSITORY format. Expected 'owner/repo'.");
-  }
-
-  // Add validation for TOKEN (example: check length or prefix)
-  if (githubToken.length < 4) {
-    abort("Invalid GITHUB_TOKEN format. Token is too short.");
-  }
-
-  // Example: Check if INPUT_CREATE_LABEL is a valid boolean string
-  if (
-    process.env.INPUT_CREATE_LABEL &&
-    !["true", "false"].includes(process.env.INPUT_CREATE_LABEL.toLowerCase())
-  ) {
-    abort("Invalid INPUT_CREATE_LABEL value.  Must be 'true' or 'false'.");
-  }
-
-  const octokit = new Octokit({ auth: githubToken });
-  const assignees = assignee ? [assignee] : [];
+  const github = new GitHub(inputs.token);
 
   try {
-    if (createLabel) {
-      await createLabelIfMissing(octokit, owner, repo, inputLabel);
+    if (inputs.issue.createLabels) {
+      for (let i = 0; i < inputs.issue.labels.length; i++) {
+        await github.createLabelIfMissing(inputs.issue.labels[i]);
+      }
     }
 
-    const fileContent = await fs.readFile(filename, "utf-8");
+    const fileContent = await fs.readFile(inputs.issue.filename, "utf-8");
     const data = JSON.parse(fileContent) as ReportDict; // Data is now defined here.
 
-    const existingIssues = await fetchExistingIssues(
-      octokit,
-      owner,
-      repo,
-      inputLabel,
+    const existingIssues = await github.getTrivyIssues(
+      inputs.issue.labels
     );
     const reports = parseResults(data, existingIssues);
 
@@ -166,13 +42,9 @@ async function main() {
 
     const issues = generateIssues(reports);
     for (const issue of issues) {
-      await createGitHubIssue(
-        octokit,
-        owner,
-        repo,
-        issue,
-        inputLabel,
-        assignees,
+      const issueOption = { title: issue.title, body: issue.body, ...inputs.issue };
+      await github.createIssue(
+        issueOption
       );
     }
   } catch (error) {
