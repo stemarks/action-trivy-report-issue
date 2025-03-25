@@ -84,6 +84,7 @@ export class GitHub {
         issue_number: issueNumber,
         ...options,
         labels: labels,
+        state: "open",
       });
 
       return {
