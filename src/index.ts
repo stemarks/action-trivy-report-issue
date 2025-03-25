@@ -2,7 +2,7 @@ import * as process from "process";
 import * as fs from "fs/promises";
 import * as core from "@actions/core";
 import { generateIssues, parseResults } from "./report-generator.js";
-import { IssueOption, ReportDict } from "./interface.js";
+import { IssueOption, IssueResponse, ReportDict } from "./interface.js";
 import { GitHub } from "./github.js";
 import { Inputs } from "./inputs.js";
 
@@ -15,12 +15,16 @@ function abort(message: string, error?: Error): never {
 }
 
 async function main() {
-
   // Read inputs from environment variables
   const inputs = new Inputs();
 
   // Initialize GitHub client with the provided token
   const github = new GitHub(inputs.token);
+
+  // Initialise arrays to store created, updated and closed issues
+  const issuesCreated: IssueResponse[] = [];
+  const issuesUpdated: { issueNumber: number }[] = [];
+  const issuesClosed: IssueResponse[] = [];
 
   try {
     // Create GitHub labels if createLabels is true and the labels dont already exist
@@ -43,15 +47,23 @@ async function main() {
     const reportData = JSON.parse(trivyRaw) as ReportDict; // Data is now defined here.
 
     // Fetch existing Trivy issues from GitHub and filter out duplicates using a Set
-    const existingIssues = await github.getTrivyIssues(
-      inputs.issue.labels
-    );
+    const existingIssues = await github.getTrivyIssues(inputs.issue.labels);
 
     const reports = parseResults(reportData, existingIssues);
 
-    if (reports === null && existingIssues !== null) {
-      core.info("No reports found but open issues were found")
-      // TODO: have an input to closes issues that are no longer in the report
+    if (reports === null && existingIssues.length > 0) {
+      core.info(
+        "No reports found but open issues were found. Closing existing issues.",
+      );
+      for (const issue of existingIssues) {
+        if (inputs.dryRun) {
+          core.info(
+            `[Dry Run] Would close issue: ${issue.number} - ${issue.title}`,
+          );
+        } else {
+          issuesClosed.push(await github.closeIssue(issue.number));
+        }
+      }
       return;
     } else if (reports === null) {
       core.info("No reports to create issues for");
@@ -64,11 +76,17 @@ async function main() {
     // Create GitHub issues from the parsed report data, excluding duplicates if found in existing issues
     for (const issue of issues) {
       //check if issue exists
-      const existingIssue = existingIssues.find(existingIssue => existingIssue.title.toLowerCase() === issue.title.toLowerCase());
+      const existingIssue = existingIssues.find(
+        (existingIssue) =>
+          existingIssue.title.toLowerCase() === issue.title.toLowerCase(),
+      );
       if (existingIssue) {
         // Issue exists, check if we need to update it (e.g., if a fix is now available)
-        if (issue.hasFix && !existingIssue.labels.includes(inputs.issue.fixLabel!) ||
-          issue.body !== existingIssue.body) {
+        if (
+          (issue.hasFix &&
+            !existingIssue.labels.includes(inputs.issue.fixLabel!)) ||
+          issue.body !== existingIssue.body
+        ) {
           // Update the issue
           const updateIssueOption: IssueOption & { hasFix?: boolean } = {
             title: issue.title,
@@ -82,23 +100,36 @@ async function main() {
           };
 
           if (inputs.dryRun) {
-            console.log(`[Dry Run] Would update issue #${existingIssue.number} with:`, updateIssueOption);
+            console.log(
+              `[Dry Run] Would update issue #${existingIssue.number} with:`,
+              updateIssueOption,
+            );
           } else {
-            await github.updateIssue(existingIssue.number, updateIssueOption);
+            issuesUpdated.push(
+              await github.updateIssue(existingIssue.number, updateIssueOption),
+            );
           }
         }
       } else {
         // Issue doesn't exist, create it
-        const issueOption = { title: issue.title, body: issue.body, ...inputs.issue, hasFix: issue.hasFix };
+        const issueOption = {
+          title: issue.title,
+          body: issue.body,
+          ...inputs.issue,
+          hasFix: issue.hasFix,
+        };
         if (inputs.dryRun) {
           core.info(`[Dry Run] Would create issue with: ${issueOption}`);
         } else {
-          await github.createIssue(
-            issueOption
-          );
+          issuesUpdated.push(await github.createIssue(issueOption));
         }
       }
     }
+
+    // Set the created and updated issues as outputs
+    core.setOutput("issues-created", JSON.stringify(issuesCreated));
+    core.setOutput("issues-updated", JSON.stringify(issuesUpdated));
+    core.setOutput("issues-closed", JSON.stringify(issuesClosed));
   } catch (error) {
     if (error instanceof Error) {
       abort(`Error: ${error.message}`, error);
