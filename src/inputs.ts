@@ -4,7 +4,7 @@ import { IssueInputs } from './interface.js';
 export class Inputs {
     token: string;
     issue: IssueInputs;
-    fail_on_vulnerabilities: boolean;
+    dryRun: boolean;
 
     constructor() {
         this.token = core.getInput('token', { required: true });
@@ -24,8 +24,7 @@ export class Inputs {
             enableFixLabel: core.getInput('enable-fix-label').toLowerCase() === 'true' || true,
             fixLabel: core.getInput('fix-label') || 'fix-available',
         };
+        this.dryRun = core.getInput('dry-run').toLowerCase() === 'true' || false;  // Initialize dryRun
 
-        this.fail_on_vulnerabilities =
-            core.getInput('fail_on_vulnerabilities') === 'true';
     }
 }

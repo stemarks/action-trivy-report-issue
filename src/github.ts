@@ -2,6 +2,7 @@ import * as github from '@actions/github';
 import { Octokit } from '@octokit/rest';
 import { IssueOption, IssueResponse, TrivyIssue } from './interface.js';
 import { RequestError } from '@octokit/request-error';
+import * as core from '@actions/core';
 
 
 export class GitHub {
@@ -51,7 +52,11 @@ export class GitHub {
                 ...options,
                 labels: labels,
             });
-            return { issueNumber: issue.number, htmlUrl: issue.html_url };
+            const issueResponse: IssueResponse = { issueNumber: issue.number, htmlUrl: issue.html_url };
+
+            core.info(`Created issue: ${issue.html_url} (Issue Number: ${issue.number})`);
+
+            return issueResponse;
         }
         catch (err) {
             throw new Error(`Failed to create issue: ${err}`);
@@ -63,6 +68,7 @@ export class GitHub {
             if (options.enableFixLabel && options.hasFix) {
                 labels.push(options.fixLabel!);
             }
+            core.info(`Updating issue ${issueNumber} with: ${options} ${labels}`)
             await this.client.issues.update({
                 ...github.context.repo,
                 issue_number: issueNumber,
@@ -82,17 +88,17 @@ export class GitHub {
                 ...github.context.repo,
                 name: label,
             });
-            console.log(`Label "${label}" already exists.`);
+            core.info(`Label "${label}" already exists.`);
         } catch (error: unknown) {
             if (error instanceof RequestError) {
                 // Use RequestError (or the appropriate Octokit error type)
                 if (error.status === 404) {
-                    console.log(`Label "${label}" does not exist. Creating it...`);
+                    core.info(`Label "${label}" does not exist. Creating it...`);
                     await this.client.issues.createLabel({
                         ...github.context.repo,
                         name: label,
                     });
-                    console.log(`Label "${label}" created successfully.`);
+                    core.info(`Label "${label}" created successfully.`);
                 } else {
                     throw new Error(
                         `Error checking or creating label "${label}": ${error.message}`,

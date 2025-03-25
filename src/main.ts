@@ -1,6 +1,6 @@
 import * as process from "process";
 import * as fs from "fs/promises";
-
+import * as core from "@actions/core";
 import { generateIssues, parseResults } from "./report-generator.js";
 import { IssueOption, ReportDict } from "./interface.js";
 import { GitHub } from "./github.js";
@@ -30,7 +30,11 @@ async function main() {
         labelsToCreate.push(inputs.issue.fixLabel!);
       }
       for (const label of labelsToCreate) {
-        await github.createLabelIfMissing(label);
+        if (inputs.dryRun) {
+          core.info(`[Dry Run] Would create label: ${label}`);
+        } else {
+          await github.createLabelIfMissing(label);
+        }
       }
     }
 
@@ -46,11 +50,11 @@ async function main() {
     const reports = parseResults(reportData, existingIssues);
 
     if (reports === null && existingIssues !== null) {
-      console.log("No reports found but open issues were found")
+      core.info("No reports found but open issues were found")
       // TODO: have an input to closes issues that are no longer in the report
       return;
     } else if (reports === null) {
-      console.log("No reports to create issues for");
+      core.info("No reports to create issues for");
       return;
     }
 
@@ -76,14 +80,23 @@ async function main() {
             fixLabel: inputs.issue.fixLabel,
             hasFix: issue.hasFix,
           };
-          await github.updateIssue(existingIssue.number, updateIssueOption);
+
+          if (inputs.dryRun) {
+            console.log(`[Dry Run] Would update issue #${existingIssue.number} with:`, updateIssueOption);
+          } else {
+            await github.updateIssue(existingIssue.number, updateIssueOption);
+          }
         }
       } else {
         // Issue doesn't exist, create it
         const issueOption = { title: issue.title, body: issue.body, ...inputs.issue, hasFix: issue.hasFix };
-        await github.createIssue(
-          issueOption
-        );
+        if (inputs.dryRun) {
+          core.info(`[Dry Run] Would create issue with: ${issueOption}`);
+        } else {
+          await github.createIssue(
+            issueOption
+          );
+        }
       }
     }
   } catch (error) {

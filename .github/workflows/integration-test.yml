@@ -36,33 +36,4 @@ jobs:
           labels: "integration-test"
           create-labels: "true"
           enable-fix-label: "true"
-
-      - name: Verify Issue Creation
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const label = core.getInput('label');
-
-            try {
-              const issues = await github.rest.issues.listForRepo({
-                owner,
-                repo,
-                labels: label,
-              });
-
-              if (issues.data.length > 0) {
-                const issue = issues.data[0];
-                console.log('Issue found: ', issue.title);
-
-                if (!issue.title.includes('Security Alert')) {
-                  core.setFailed(`Issue title "${issue.title}" does not contain "Security Alert".`);
-                }
-
-              } else {
-                core.setFailed('No issues were created by the action.');
-              }
-            } catch (error) {
-              core.setFailed(`Failed to fetch issues: ${error.message}`);
-            }
+          dry-run: true

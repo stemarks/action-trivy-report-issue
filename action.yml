@@ -31,7 +31,11 @@ inputs:
     description: "Fix label to be added if a fix is available"
     required: false
     default: "fix-available"
-
+  dry-run:
+    description: "Perform a dry run, doesnt actually create issues or labels"
+    required: false
+    default: "false"
+    
 runs:
   using: "node20" # Or the node version you are using
   main: "dist/index.js"
