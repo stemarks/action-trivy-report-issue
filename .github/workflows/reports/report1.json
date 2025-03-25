@@ -58,6 +58,7 @@
                     "VulnerabilityID": "CVE-2021-41496",
                     "PkgName": "numpy",
                     "InstalledVersion": "1.21.5",
+                    "FixedVersion": "1.21.6",
                     "Layer": {},
                     "SeveritySource": "nvd",
                     "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-41496",
