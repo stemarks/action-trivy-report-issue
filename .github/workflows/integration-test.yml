@@ -41,23 +41,29 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const core = require('@actions/core');
             const github = require('@actions/github');
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const label = core.getInput('label');
 
-            const issues = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              labels: label,
-            });
+            try {
+              const issues = await github.rest.issues.listForRepo({
+                owner,
+                repo,
+                labels: label,
+              });
 
-            if (issues.data.length > 0) {
-              const issue = issues.data[0];
-              console.log('Issue found: ', issue.title);
-              // Add more detailed checks here if needed
-              expect(issue.title).toContain('Security Alert');
-            } else {
-              core.setFailed('No issues were created by the action.');
+              if (issues.data.length > 0) {
+                const issue = issues.data[0];
+                console.log('Issue found: ', issue.title);
+
+                if (!issue.title.includes('Security Alert')) {
+                  core.setFailed(`Issue title "${issue.title}" does not contain "Security Alert".`);
+                }
+
+              } else {
+                core.setFailed('No issues were created by the action.');
+              }
+            } catch (error) {
+              core.setFailed(`Failed to fetch issues: ${error.message}`);
             }
