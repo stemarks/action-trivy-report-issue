@@ -129,16 +129,18 @@ export class GitHub {
       });
       core.info(`Label "${label}" already exists.`);
     } catch (error: any) {
-      core.error(`Error fetching label "${label}": ${error.message}`);
 
       // Check if it's a 404 error
       if (error.status === 404) {
         core.info(`Label "${label}" does not exist. Creating it...`);
+        // Generate a random hex color
+        const randomColor = Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+
         try {
           await this.client.issues.createLabel({
             ...github.context.repo,
             name: label,
-            color: 'ffffff', // GitHub requires a color when creating a label
+            color: randomColor, // GitHub requires a color when creating a label
           });
           core.info(`Label "${label}" created successfully.`);
         } catch (createError: any) {
