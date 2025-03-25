@@ -24,10 +24,13 @@ async function main() {
 
   try {
     // Create GitHub labels if createLabels is true and the labels dont already exist
-    // TODO: move this to  create or update issue function in github
     if (inputs.issue.createLabels) {
-      for (let i = 0; i < inputs.issue.labels.length; i++) {
-        await github.createLabelIfMissing(inputs.issue.labels[i]);
+      const labelsToCreate = [...inputs.issue.labels];
+      if (inputs.issue.enableFixLabel) {
+        labelsToCreate.push(inputs.issue.fixLabel!);
+      }
+      for (const label of labelsToCreate) {
+        await github.createLabelIfMissing(label);
       }
     }
 
