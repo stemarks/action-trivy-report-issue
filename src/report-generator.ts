@@ -102,22 +102,21 @@ export function generateIssues(reports: Report[]): Issue[] {
         // Since each report only has one vulnerability, grab it.
         const vulnerability = report.vulnerabilities[0];
 
-        const issue_title = `Security Alert: ${report.package_type} package ${report.package} - ${vulnerability.VulnerabilityID}`;
+        const issue_title = `${vulnerability.VulnerabilityID}: ${report.package_type} package ${report.package}`;
 
-        let issue_body = `# Vulnerability Details for ${report.package_type} package \`${report.package}\` in \`${report.target}\`\n\n`;
-        issue_body += `## Package Name\n**${report.package_name}**\n\n`;
-        issue_body += `## Package Version\n**${report.package_version}**\n\n`;
+        let issue_body = `## Title\n${vulnerability.Title}\n`;
+        issue_body += `## Description\n${vulnerability.Description}\n`;
+        issue_body += `## Severity\n**${vulnerability.Severity}**\n`;
         issue_body += `## Fixed in Version\n**${report.package_fixed_version || "No known fix at this time"}**\n\n`;
-        issue_body += `## Vulnerability ID\n**${vulnerability.VulnerabilityID}**\n\n`;
-        issue_body += `## Title\n${vulnerability.Title}\n\n`;
-        issue_body += `${vulnerability.Description}\n\n`;
-        issue_body += `### Severity\n**${vulnerability.Severity}**\n\n`;
-        issue_body += `### Primary URL\n${vulnerability.PrimaryURL}\n\n`;
-
+        issue_body += `## Primary URL\n${vulnerability.PrimaryURL}\n`;
+        issue_body += `## Additional Information\n`;
+        issue_body += `**Vulnerability ID:** ${vulnerability.VulnerabilityID}}\n`;
+        issue_body += `**Package Name:** ${report.package_name}\n`;
+        issue_body += `**Package Version:** ${report.package_version}\n`;
         const reference_items = vulnerability.References.map(
             (reference: string) => `- ${reference}`,
         ).join("\n");
-        issue_body += `### References\n${reference_items}\n\n`;
+        issue_body += `## References\n${reference_items}\n\n`;
 
         issues.push({
             id: report.id,

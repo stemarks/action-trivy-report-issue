@@ -64,19 +64,3 @@ export class Report {
         this.vulnerabilities = vulnerabilities;
     }
 }
-
-export class Issue {
-    id: string;
-    report: Report;
-    title: string;
-    body: string;
-    hasFix: boolean;
-
-    constructor(id: string, report: Report, title: string, body: string, hasFix: boolean) {
-        this.id = id;
-        this.report = report;
-        this.title = title;
-        this.body = body;
-        this.hasFix = hasFix;
-    }
-}
