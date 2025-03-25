@@ -23,6 +23,7 @@
         {
           "VulnerabilityID": "CVE-2021-32677",
           "PkgName": "fastapi",
+          "InstalledVersion": "0.63.0",
           "Layer": {},
           "SeveritySource": "ghsa-pip",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-32677",

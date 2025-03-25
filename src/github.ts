@@ -1,7 +1,6 @@
 import * as github from "@actions/github";
 import { Octokit } from "@octokit/rest";
 import { IssueOption, IssueResponse, TrivyIssue } from "./interface.js";
-import { RequestError } from "@octokit/request-error";
 import * as core from "@actions/core";
 
 export class GitHub {
