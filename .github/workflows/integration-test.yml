@@ -33,7 +33,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           filename: ".github/workflows/reports/report1.json" # Use the sample report
-          labels: "integration-test"
-          create-labels: "true"
-          enable-fix-label: "true"
-          dry-run: true
+          labels: "trivy,integration-test"
+          create-labels: true
+          enable-fix-label: true
