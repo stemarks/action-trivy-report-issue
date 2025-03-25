@@ -6,11 +6,11 @@ export function parseResults(
     existing_issues: TrivyIssue[],
 ): Report[] | null {
     /**
-     * Parses Trivy result structure and creates a report per package/version that
-     * was found. Return null if no Results found, ie. nothing to parse.
+     * Parses Trivy result structure and creates a report per vulnerability.
+     * Return null if no Results found.
      *
-     * @param data The report data that was parsed from JSON file.
-     * @param existing_issues List of GitHub issues, used to exclude already reported issues.
+     * @param data The report data parsed from the JSON file.
+     * @param existing_issues List of GitHub issues used to exclude already reported vulnerabilities.
      */
     try {
         const results = data.Results;
@@ -21,12 +21,13 @@ export function parseResults(
             );
         }
 
-        const reports: { [key: string]: Report } = {};
+        const reports: Report[] = [];
 
-        // Create a Set of existing issue identifiers for efficient lookup
+        // Create a Set of existing issue identifiers for efficient lookup.
+        // Updated identifier now includes VulnerabilityID.
         const existingIssueSet = new Set<string>();
         for (const issue of existing_issues) {
-            existingIssueSet.add(issue.title.toLowerCase()); // Normalize here
+            existingIssueSet.add(issue.title.toLowerCase());
         }
 
         for (let idx = 0; idx < results.length; idx++) {
@@ -60,70 +61,70 @@ export function parseResults(
                 const package_version = vulnerability["InstalledVersion"];
                 const package_fixed_version = vulnerability["FixedVersion"];
                 const pkg = `${package_name}-${package_version}`;
-                const report_id = `${pkg}`;
-                const issueIdentifier = `${package_name.toLowerCase()} ${package_version.toLowerCase()}`; // Normalize here
+                // Include VulnerabilityID in the identifier to ensure uniqueness per vulnerability.
+                const issueIdentifier = `${package_name.toLowerCase()} ${package_version.toLowerCase()} ${vulnerability.VulnerabilityID.toLowerCase()}`;
 
                 if (existingIssueSet.has(issueIdentifier)) {
                     continue;
                 }
 
-                const lookup_id = `${package_type}:${report_id}`;
+                const report_id = `${package_name}-${package_version}-${vulnerability.VulnerabilityID}`;
 
-                let report = reports[lookup_id];
-                if (!report) {
-                    report = {
-                        id: report_id,
-                        package: pkg,
-                        package_name: package_name,
-                        package_version: package_version,
-                        package_fixed_version: package_fixed_version,
-                        package_type: package_type,
-                        target: result["Target"],
-                        vulnerabilities: [vulnerability],
-                    };
-                    reports[lookup_id] = report;
-                } else {
-                    report.vulnerabilities.push(vulnerability);
-                }
+                // Each vulnerability gets its own report.
+                const report: Report = {
+                    id: report_id,
+                    package: pkg,
+                    package_name: package_name,
+                    package_version: package_version,
+                    package_fixed_version: package_fixed_version,
+                    package_type: package_type,
+                    target: result["Target"],
+                    vulnerabilities: [vulnerability],
+                };
+
+                reports.push(report);
             }
         }
 
-        return Object.values(reports);
+        return reports;
     } catch (e) {
-        console.error("Error during parse_results:", e);
-
+        console.error("Error during parseResults:", e);
         return null;
     }
 }
 
 export function generateIssues(reports: Report[]): Issue[] {
     /**
-     * Iterates all reports and renders them into GitHub issues.
+     * Iterates all reports (each representing a vulnerability) and renders them into GitHub issues.
      */
     const issues: Issue[] = [];
     for (const report of reports) {
-        const issue_title = `Security Alert: ${report.package_type} package ${report.package}`;
+        // Since each report only has one vulnerability, grab it.
+        const vulnerability = report.vulnerabilities[0];
 
-        let issue_body = `# Vulnerabilities found for ${report.package_type} package \`${report.package}\` in \`${report.target}\`\n\n`;
-        issue_body += `## Fixed in version\n**${report.package_fixed_version || "No known fix at this time"
-            }**\n\n`;
+        const issue_title = `Security Alert: ${report.package_type} package ${report.package} - ${vulnerability.VulnerabilityID}`;
 
-        for (
-            let vulnerability_idx = 0;
-            vulnerability_idx < report.vulnerabilities.length;
-            vulnerability_idx++
-        ) {
-            const vulnerability = report.vulnerabilities[vulnerability_idx];
-            const reference_items = vulnerability.References.map(
-                (reference) => `- ${reference}`,
-            ).join("\n");
-            issue_body += `## \`${vulnerability.VulnerabilityID}\` - ${vulnerability.Title}\n\n${vulnerability.Description}\n\n### Severity\n**${vulnerability.Severity}**\n\n### Primary URL\n${vulnerability.PrimaryURL}\n\n### References\n${reference_items}\n\n`;
-        }
+        let issue_body = `# Vulnerability Details for ${report.package_type} package \`${report.package}\` in \`${report.target}\`\n\n`;
+        issue_body += `## Package Name\n**${report.package_name}**\n\n`;
+        issue_body += `## Package Version\n**${report.package_version}**\n\n`;
+        issue_body += `## Fixed in Version\n**${report.package_fixed_version || "No known fix at this time"}**\n\n`;
+        issue_body += `## Vulnerability ID\n**${vulnerability.VulnerabilityID}**\n\n`;
+        issue_body += `## Title\n${vulnerability.Title}\n\n`;
+        issue_body += `${vulnerability.Description}\n\n`;
+        issue_body += `### Severity\n**${vulnerability.Severity}**\n\n`;
+        issue_body += `### Primary URL\n${vulnerability.PrimaryURL}\n\n`;
+
+        const reference_items = vulnerability.References.map(
+            (reference: string) => `- ${reference}`,
+        ).join("\n");
+        issue_body += `### References\n${reference_items}\n\n`;
+
         issues.push({
             id: report.id,
             report: report,
             title: issue_title,
             body: issue_body,
+            hasFix: report.package_fixed_version !== undefined
         });
     }
     return issues;

@@ -9,20 +9,28 @@ inputs:
   filename:
     description: "Filename containing Trivy scan results, in JSON format"
     required: true
-  label:
-    description: "Issue label, separated by comma"
+  labels:
+    description: "Issue labels, separated by comma"
     required: false
     default: "vulnerability"
-  create-label:
-    description: "Create the label if it doesn't already exist"
-    required: false
-    default: "false"
-  assignee:
+  assignees:
     description: "Issue assignees, separated by comma"
     required: false
   project-id:
     description: "Project ID to associate the issue with"
     required: false
+  create-labels:
+    description: "Create the labels if they don't already exist"
+    required: false
+    default: "false"
+  enable-fix-label:
+    description: "Enable adding the fix label if a fix is available"
+    required: false
+    default: "false"
+  fix-label:
+    description: "Fix label to be added if a fix is available"
+    required: false
+    default: "fix-available"
 
 runs:
   using: "node20" # Or the node version you are using

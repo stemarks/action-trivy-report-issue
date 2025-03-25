@@ -24,14 +24,20 @@ export interface IssueInputs {
   filename: string;
   labels: string[];
   assignees?: string[];
+  projectId?: string;
   createLabels: boolean;
   enableFixLabel: boolean;
   fixLabel?: string;
 }
 
-export interface IssueOption extends IssueInputs {
+export interface IssueOption {
   title: string;
   body: string;
+  labels: string[];
+  assignees?: string[];
+  projectId?: string;
+  enableFixLabel: boolean;
+  fixLabel?: string;
 }
 
 export interface IssueResponse {

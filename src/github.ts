@@ -41,11 +41,16 @@ export class GitHub {
         }
     }
 
-    async createIssue(options: IssueOption): Promise<IssueResponse> {
+    async createIssue(options: IssueOption & { hasFix?: boolean }): Promise<IssueResponse> {
         try {
+            let labels = [...options.labels];
+            if (options.enableFixLabel && options.hasFix) {
+                labels.push(options.fixLabel!);
+            }
             const { data: issue } = await this.client.issues.create({
                 ...github.context.repo,
                 ...options,
+                labels: labels,
             });
             return { issueNumber: issue.number, htmlUrl: issue.html_url };
         }
@@ -53,12 +58,17 @@ export class GitHub {
             throw new Error(`Failed to create issue: ${err}`);
         }
     }
-    async updateIssue(issueNumber: number, options: Issue): Promise<void> {
+    async updateIssue(issueNumber: number, options: IssueOption & { hasFix?: boolean }): Promise<void> {
         try {
+            let labels = [...options.labels];
+            if (options.enableFixLabel && options.hasFix) {
+                labels.push(options.fixLabel!);
+            }
             await this.client.issues.update({
                 ...github.context.repo,
                 issue_number: issueNumber,
                 ...options,
+                labels: labels,
             });
         } catch (err) {
             throw new Error(`Failed to update issue: ${err}`);
