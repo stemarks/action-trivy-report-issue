@@ -1,6 +1,6 @@
 import { Issue, Report } from './dataclass.js'
 import { ReportDict, TrivyIssue } from './interface.js'
-
+import * as core from '@actions/core'
 export function parseResults(
   data: ReportDict,
   existing_issues: TrivyIssue[]
@@ -57,18 +57,18 @@ export function parseResults(
       }
 
       for (const vulnerability of vulnerabilities) {
-        const package_name = vulnerability['PkgName']
-        const package_version = vulnerability['InstalledVersion']
-        const package_fixed_version = vulnerability['FixedVersion'] || ''
-        const pkg = `${package_name}-${package_version}`
+        const package_name = vulnerability['PkgName'];
+        const package_version = vulnerability['InstalledVersion'];
+        const package_fixed_version = vulnerability['FixedVersion'] || undefined;
+        const pkg = `${package_name}-${package_version}`;
         // Include VulnerabilityID in the identifier to ensure uniqueness per vulnerability.
-        const issueIdentifier = `${package_name.toLowerCase()} ${package_version.toLowerCase()} ${vulnerability.VulnerabilityID.toLowerCase()}`
+        const issueIdentifier = `${package_name.toLowerCase()} ${package_version.toLowerCase()} ${vulnerability.VulnerabilityID.toLowerCase()}`;
 
         if (existingIssueSet.has(issueIdentifier)) {
           continue
         }
 
-        const report_id = `${package_name}-${package_version}-${vulnerability.VulnerabilityID}`
+        const report_id = `${package_name}-${package_version}-${vulnerability.VulnerabilityID}`;
 
         // Each vulnerability gets its own report.
         const report: Report = {
@@ -88,7 +88,7 @@ export function parseResults(
 
     return reports
   } catch (e) {
-    console.error('Error during parseResults:', e)
+    core.error(`Error during parseResults: ${e}`)
     return null
   }
 }
