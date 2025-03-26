@@ -87,6 +87,7 @@ async function main() {
             !existingIssue.labels.includes(inputs.issue.fixLabel!)) ||
           issue.body !== existingIssue.body
         ) {
+          console.log(issue.hasFix)
           // Update the issue
           const updateIssueOption: IssueOption & { hasFix: boolean } = {
             title: issue.title,

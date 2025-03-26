@@ -118,8 +118,6 @@ export function generateIssues(reports: Report[]): Issue[] {
     ).join('\n')
     issue_body += `## References\n${reference_items}\n\n`
 
-    console.log(report.package_fixed_version)
-
     issues.push({
       id: report.id,
       report: report,
