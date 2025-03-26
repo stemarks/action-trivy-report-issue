@@ -2,6 +2,7 @@ import * as github from '@actions/github'
 import { Octokit } from '@octokit/rest'
 import { IssueOption, IssueResponse, TrivyIssue } from './interface.js'
 import * as core from '@actions/core'
+import { RequestError } from '@octokit/request-error'
 
 export class GitHub {
   client: Octokit
@@ -128,8 +129,9 @@ export class GitHub {
       })
       core.info(`Label "${label}" already exists.`)
     } catch (error: any) {
-      console.log(typeof error)
+      console.log(error instanceof RequestError)
       // Check if it's a 404 error
+      
       if (error.status === 404) {
         core.info(`Label "${label}" does not exist. Creating it...`)
         // Generate a random hex color
