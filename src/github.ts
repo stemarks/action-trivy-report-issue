@@ -2,7 +2,17 @@ import * as github from '@actions/github'
 import { Octokit } from '@octokit/rest'
 import { IssueOption, IssueResponse, TrivyIssue } from './interface.js'
 import * as core from '@actions/core'
-import { RequestError } from '@octokit/request-error'
+
+function isRequestError(error: unknown): error is { status: number; message: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof (error as any).status === 'number' &&
+    'message' in error &&
+    typeof (error as any).message === 'string'
+  );
+}
 
 export class GitHub {
   client: Octokit
@@ -129,10 +139,8 @@ export class GitHub {
       })
       core.info(`Label "${label}" already exists.`)
     } catch (error: any) {
-      console.log(error instanceof RequestError)
       // Check if it's a 404 error
-      
-      if (error.status === 404) {
+      if (isRequestError(error) && error.status === 404) {
         core.info(`Label "${label}" does not exist. Creating it...`)
         // Generate a random hex color
         const randomColor = Math.floor(Math.random() * 16777215)
@@ -146,13 +154,12 @@ export class GitHub {
             color: randomColor // GitHub requires a color when creating a label
           })
           core.info(`Label "${label}" created successfully.`)
-        } catch (createError: any) {
-          core.error(
-            `Failed to create label "${label}": ${createError.message}`
-          )
-          throw new Error(
-            `Failed to create label "${label}": ${createError.message}`
-          )
+        } catch (createError: unknown) {
+          if (isRequestError(createError)) {
+            core.error(`Failed to create label "${label}": ${createError.message}`);
+            throw new Error(`Failed to create label "${label}": ${createError.message}`);
+          }
+          throw createError;
         }
       } else {
         core.error(
