@@ -3,15 +3,17 @@ import { Octokit } from '@octokit/rest'
 import { IssueOption, IssueResponse, TrivyIssue } from './interface.js'
 import * as core from '@actions/core'
 
-function isRequestError(error: unknown): error is { status: number; message: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'status' in error &&
-    typeof (error as any).status === 'number' &&
-    'message' in error &&
-    typeof (error as any).message === 'string'
-  );
+interface RequestErrorLike {
+  status: number
+  message: string
+}
+
+function isRequestError(error: unknown): error is RequestErrorLike {
+  if (typeof error === 'object' && error !== null) {
+    const err = error as Record<string, unknown>
+    return typeof err.status === 'number' && typeof err.message === 'string'
+  }
+  return false
 }
 
 export class GitHub {
@@ -53,7 +55,7 @@ export class GitHub {
   }
 
   async createIssue(
-    options: IssueOption & { hasFix?: boolean }
+    options: IssueOption & { hasFix: boolean }
   ): Promise<IssueResponse> {
     try {
       const labels = [...options.labels]
@@ -81,7 +83,7 @@ export class GitHub {
   }
   async updateIssue(
     issueNumber: number,
-    options: IssueOption & { hasFix?: boolean }
+    options: IssueOption & { hasFix: boolean }
   ): Promise<IssueResponse> {
     try {
       const labels = [...options.labels]
@@ -94,7 +96,8 @@ export class GitHub {
         ...github.context.repo,
         issue_number: issueNumber,
         ...options,
-        labels: labels
+        labels: labels,
+        state: "open"
       })
 
       return {
@@ -131,6 +134,32 @@ export class GitHub {
       }
     }
   }
+  async reopenIssue(issueNumber: number): Promise<IssueResponse> {
+    try {
+      const { data: issue } = await this.client.issues.update({
+        ...github.context.repo,
+        issue_number: issueNumber,
+        state: 'open' // Set the state to 'open' to reopen the issue
+      })
+
+      core.info(`Reopened issue #${issueNumber}`)
+
+      return {
+        issueNumber: issue.number,
+        htmlUrl: issue.html_url ?? ''
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to reopen issue #${issueNumber}: ${error.message}`
+        )
+      } else {
+        throw new Error(
+          `Failed to reopen issue #${issueNumber}: An unknown error occurred.`
+        )
+      }
+    }
+  }
   async createLabelIfMissing(label: string): Promise<void> {
     try {
       await this.client.issues.getLabel({
@@ -138,7 +167,7 @@ export class GitHub {
         name: label
       })
       core.info(`Label "${label}" already exists.`)
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Check if it's a 404 error
       if (isRequestError(error) && error.status === 404) {
         core.info(`Label "${label}" does not exist. Creating it...`)
@@ -156,18 +185,18 @@ export class GitHub {
           core.info(`Label "${label}" created successfully.`)
         } catch (createError: unknown) {
           if (isRequestError(createError)) {
-            core.error(`Failed to create label "${label}": ${createError.message}`);
-            throw new Error(`Failed to create label "${label}": ${createError.message}`);
+            core.error(
+              `Failed to create label "${label}": ${createError.message}`
+            )
+            throw new Error(
+              `Failed to create label "${label}": ${createError.message}`
+            )
           }
-          throw createError;
+          throw createError
         }
       } else {
-        core.error(
-          `Unexpected error while checking label "${label}": ${error.message}`
-        )
-        throw new Error(
-          `Error checking or creating label "${label}": ${error.message}`
-        )
+        core.error(`Unexpected error while checking label "${label}": ${error}`)
+        throw new Error(`Error checking or creating label "${label}": ${error}`)
       }
     }
   }
