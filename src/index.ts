@@ -88,7 +88,7 @@ async function main() {
           issue.body !== existingIssue.body
         ) {
           // Update the issue
-          const updateIssueOption: IssueOption & { hasFix?: boolean } = {
+          const updateIssueOption: IssueOption & { hasFix: boolean } = {
             title: issue.title,
             body: issue.body,
             labels: inputs.issue.labels, // Use the labels from inputs
